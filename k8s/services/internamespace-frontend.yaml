@@ -1,0 +1,15 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: appName-frontend-defaultns
+  namespace: default
+spec:
+  type: ExternalName
+  externalName: appName-frontend.testing.svc.cluster.local
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+  selector:
+    app: appName
+    role: frontend
