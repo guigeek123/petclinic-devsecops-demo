@@ -168,7 +168,7 @@ spec:
               // TODO : Show an information on jenkins to say that the gate is not OK but not block the build
           } finally {
               // Move JSON report to be uploaded later in defectdojo
-              sh "mkdir reports/clair && mv pipeline-tools/clair/scripts/clair-results.json reports/clair/"
+              sh "mkdir reports/clair && cp pipeline-tools/clair/scripts/clair-results.json reports/clair/"
           }
 
       }
@@ -218,7 +218,7 @@ spec:
                   publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'pipeline-tools/zap/scripts/', reportFiles: 'results.html', reportName: 'ZAP full report', reportTitles: ''])
 
                   // Move XML report to be uploaded later in defectdojo
-                  sh "mkdir reports/zap && mv pipeline-tools/zap/scripts/zap-results.xml reports/zap/"
+                  sh "mkdir reports/zap && cp pipeline-tools/zap/scripts/zap-results.xml reports/zap/"
 
                   // Analysing results using behave
                   sh 'cd pipeline-tools/zap/scripts/ && behave'
