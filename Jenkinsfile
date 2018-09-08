@@ -86,6 +86,12 @@ spec:
           //git branch: 'mergeAll', url: 'https://github.com/guigeek123/spring-petclinic-jenkins-kubernetes.git'
       }
 
+      // Using a Python Based image to download pipeline-tools
+      container('zapcli') {
+          sh 'curl -L https://github.com/guigeek123/spring-petclinic-jenkins-kubernetes/releases/download/v0.4/pipeline-tools-v0.4.tar.gz --output pipeline-tools-v0.4.tar.gz'
+          sh 'tar xvzf pipeline-tools-v0.4.tar.gz'
+      }
+
 
       stage('Sonar and Dependency-Check') {
 
