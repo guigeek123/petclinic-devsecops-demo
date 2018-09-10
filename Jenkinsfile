@@ -288,23 +288,24 @@ spec:
         }
 
 
-        script {
-            try {
-                withCredentials([string(credentialsId: 'defectdojo_apikey', variable: 'defectdojo_apikey')]) {
-                    stage('Upload Reports to DefectDojo') {
-                        steps {
-                            container('defectdojocli') {
-                                sh('pip install requests')
-                                sh("cd pipeline-tools/defectdojo/scripts/ && chmod +x dojo_ci_cd.py && ./dojo_ci_cd.py --host http://defectdojo:80 --api_key ${env.defectdojo_apikey} --build_id ${env.BUILD_NUMBER} --user admin --product ${project} --dir ../../../reports/")
-                            }
-                        }
-                    }
-                }
+      stage('Upload Reports to DefectDojo') {
+          steps {
+              script {
+                  try {
+                      withCredentials([string(credentialsId: 'defectdojo_apikey', variable: 'defectdojo_apikey')]) {
+                          container('defectdojocli') {
+                              sh('pip install requests')
+                              sh("cd pipeline-tools/defectdojo/scripts/ && chmod +x dojo_ci_cd.py && ./dojo_ci_cd.py --host http://defectdojo:80 --api_key ${env.defectdojo_apikey} --build_id ${env.BUILD_NUMBER} --user admin --product ${project} --dir ../../../reports/")
+                          }
+                      }
 
-            } catch (org.jenkinsci.plugins.credentialsbinding.impl.CredentialNotFoundException e) {
-                println "Export to Defect Dojo not activated : please set up the api key in defectdojo_apikey secret"
-            }
-        }
+                  } catch (org.jenkinsci.plugins.credentialsbinding.impl.CredentialNotFoundException e) {
+                      println "Export to Defect Dojo not activated : please set up the api key in defectdojo_apikey secret"
+                  }
+              }
+          }
+
+      }
 
 
 
