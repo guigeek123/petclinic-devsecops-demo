@@ -370,6 +370,8 @@ spec:
 
           when { branch 'master'}
 
+          //TODO : create a SECURITY GATE script
+
           steps {
               container('kubectl') {
                   //Get node internal ip to access nexus docker registry exposed as nodePort (nexus-direct-nodeport.yaml) and replace it yaml file
