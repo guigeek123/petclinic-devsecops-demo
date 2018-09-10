@@ -127,7 +127,7 @@ spec:
 
             when { branch 'acceptance' }
 
-            steps{
+            steps {
                 container('maven') {
                     // ddcheck=true will activate dependency-check scan (configured in POM.xml via a profile)
                     sh 'mvn -s pipeline-tools/maven/maven-custom-settings clean verify -Dddcheck=true sonar:sonar'
@@ -138,15 +138,17 @@ spec:
                 }
 
 
-                try {
-                    withCredentials([string(credentialsId: 'ddtrack_apikey', variable: 'ddtrack_apikey')]) {
-                        container('ddtrackcli') {
-                            sh('pip install requests')
-                            sh("pipeline-tools/dependency-track/scripts/ddtrack-cli.py -k ${env.ddtrack_apikey} -x target/dependency-check-report.xml -p ${project} -u http://ddtrack-service")
+                step {
+                    try {
+                        withCredentials([string(credentialsId: 'ddtrack_apikey', variable: 'ddtrack_apikey')]) {
+                            container('ddtrackcli') {
+                                sh('pip install requests')
+                                sh("pipeline-tools/dependency-track/scripts/ddtrack-cli.py -k ${env.ddtrack_apikey} -x target/dependency-check-report.xml -p ${project} -u http://ddtrack-service")
+                            }
                         }
+                    } catch (org.jenkinsci.plugins.credentialsbinding.impl.CredentialNotFoundException e) {
+                        println "Export to Dependency Track not activated : please set up the api key in ddtrack_apikey secret"
                     }
-                } catch (org.jenkinsci.plugins.credentialsbinding.impl.CredentialNotFoundException e) {
-                    println "Export to Dependency Track not activated : please set up the api key in ddtrack_apikey secret"
                 }
             }
         }
@@ -163,7 +165,7 @@ spec:
 
         stage('Build Docker image with Kaniko') {
 
-            step{
+            steps{
                 container('maven') {
                     sh 'mkdir targetDocker'
                     sh 'cd targetDocker && mvn -s ../pipeline-tools/maven/maven-custom-settings org.apache.maven.plugins:maven-dependency-plugin::get -DgroupId=org.springframework.samples -DartifactId=spring-petclinic -Dversion=2.0.0.BUILD-SNAPSHOT -Dpackaging=jar -Ddest=app.jar'
@@ -189,24 +191,27 @@ spec:
 
             steps{
                 // Execute scan and analyse results
-                try {
-                    container('claircli') {
-                        // Prerequisites installation on python image
-                        // Could be optimized by providing a custom docker image, built and pushed to github before...
-                        sh 'pip install --no-cache-dir -r pipeline-tools/clair/scripts/requirements.txt'
+                step {
+                    try {
+                        container('claircli') {
+                            // Prerequisites installation on python image
+                            // Could be optimized by providing a custom docker image, built and pushed to github before...
+                            sh 'pip install --no-cache-dir -r pipeline-tools/clair/scripts/requirements.txt'
 
-                        // Executing customized Yair script
-                        // --no-namespace cause docker image is not pushed withi a "Library" folder in Nexus
-                        sh "cd pipeline-tools/clair/scripts/ && chmod +x yair-custom.py && ./yair-custom.py ${appName}:${env.BUILD_NUMBER} --no-namespace"
+                            // Executing customized Yair script
+                            // --no-namespace cause docker image is not pushed withi a "Library" folder in Nexus
+                            sh "cd pipeline-tools/clair/scripts/ && chmod +x yair-custom.py && ./yair-custom.py ${appName}:${env.BUILD_NUMBER} --no-namespace"
 
 
+                        }
+                    } catch (all) {
+                        // TODO : Show an information on jenkins to say that the gate is not OK but not block the build
+                    } finally {
+                        // Move JSON report to be uploaded later in defectdojo
+                        sh "mkdir reports/clair && mv pipeline-tools/clair/scripts/clair-results.json reports/clair/"
                     }
-                } catch (all) {
-                    // TODO : Show an information on jenkins to say that the gate is not OK but not block the build
-                } finally {
-                    // Move JSON report to be uploaded later in defectdojo
-                    sh "mkdir reports/clair && mv pipeline-tools/clair/scripts/clair-results.json reports/clair/"
                 }
+
             }
         }
 
@@ -243,12 +248,15 @@ spec:
                     //Give a chance to the app to start
                     sh 'sleep 30'
                     //TODO : configure scanners
-                    try {
-                        sh("zap-cli quick-scan -o '-config api.disablekey=true' -l Low --spider -r http://${appName}-frontend-defaultns/")
-                    } catch (all) {
-                        //scripts gives error if any findings
-                        // for later : break the build in case of high in master branch (e.g. when building release)
+                    step {
+                        try {
+                            sh("zap-cli quick-scan -o '-config api.disablekey=true' -l Low --spider -r http://${appName}-frontend-defaultns/")
+                        } catch (all) {
+                            //scripts gives error if any findings
+                            // for later : break the build in case of high in master branch (e.g. when building release)
+                        }
                     }
+
 
                     sh("zap-cli report -f xml -o zap-results.xml")
                     sh("zap-cli report -f html -o pipeline-tools/zap/scripts/results.html")
@@ -278,22 +286,24 @@ spec:
             }
         }
 
-
-        try {
-            withCredentials([string(credentialsId: 'defectdojo_apikey', variable: 'defectdojo_apikey')]) {
-                stage('Upload Reports to DefectDojo') {
-                    steps {
-                        container('defectdojocli') {
-                            sh('pip install requests')
-                            sh("cd pipeline-tools/defectdojo/scripts/ && chmod +x dojo_ci_cd.py && ./dojo_ci_cd.py --host http://defectdojo:80 --api_key ${env.defectdojo_apikey} --build_id ${env.BUILD_NUMBER} --user admin --product ${project} --dir ../../../reports/")
+        step {
+            try {
+                withCredentials([string(credentialsId: 'defectdojo_apikey', variable: 'defectdojo_apikey')]) {
+                    stage('Upload Reports to DefectDojo') {
+                        steps {
+                            container('defectdojocli') {
+                                sh('pip install requests')
+                                sh("cd pipeline-tools/defectdojo/scripts/ && chmod +x dojo_ci_cd.py && ./dojo_ci_cd.py --host http://defectdojo:80 --api_key ${env.defectdojo_apikey} --build_id ${env.BUILD_NUMBER} --user admin --product ${project} --dir ../../../reports/")
+                            }
                         }
                     }
                 }
-            }
 
-        } catch (org.jenkinsci.plugins.credentialsbinding.impl.CredentialNotFoundException e) {
-            println "Export to Defect Dojo not activated : please set up the api key in defectdojo_apikey secret"
+            } catch (org.jenkinsci.plugins.credentialsbinding.impl.CredentialNotFoundException e) {
+                println "Export to Defect Dojo not activated : please set up the api key in defectdojo_apikey secret"
+            }
         }
+
 
 
         stage('Deploy to Kube') {
