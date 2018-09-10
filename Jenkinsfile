@@ -1,8 +1,8 @@
 def project = 'kubepetclinic'
 def  appName = 'petclinic'
 def  feSvcName = "${appName}-frontend"
-def  imageTag = "${appName}:${env.BUILD_NUMBER}"
-def tempBucket = "${project}-${appName}-${env.BUILD_NUMBER}"
+def  imageTag = "${appName}:${env.BRANCH_NAME}.${env.BUILD_NUMBER}"
+//def tempBucket = "${project}-${appName}-${env.BUILD_NUMBER}"
 
 
 pipeline {
@@ -175,9 +175,7 @@ spec:
                 container(name: 'kaniko', shell: '/busybox/sh') {
                     withEnv(['PATH+EXTRA=/busybox']) {
                         sh """#!/busybox/sh
-                            /kaniko/executor --dockerfile=Dockerfile -c `pwd` --destination=nexus-direct:8083/${appName}:${
-                            env.BUILD_NUMBER
-                        } --insecure
+                            /kaniko/executor --dockerfile=Dockerfile -c `pwd` --destination=nexus-direct:8083/${imageTag} --insecure
                         """
                     }
                 }
@@ -201,7 +199,7 @@ spec:
 
                             // Executing customized Yair script
                             // --no-namespace cause docker image is not pushed withi a "Library" folder in Nexus
-                            sh "cd pipeline-tools/clair/scripts/ && chmod +x yair-custom.py && ./yair-custom.py ${appName}:${env.BUILD_NUMBER} --no-namespace"
+                            sh "cd pipeline-tools/clair/scripts/ && chmod +x yair-custom.py && ./yair-custom.py ${imageTag} --no-namespace"
 
 
                         }
