@@ -290,7 +290,7 @@ spec:
 
       stage('Upload Reports to DefectDojo') {
           when {
-              anyof {
+              anyOf {
                   branch 'acceptance' ;
                   branch 'master'
               }
@@ -317,7 +317,7 @@ spec:
 
           when {
               not {
-                  anyof {
+                  anyOf {
                       branch 'acceptance' ;
                       branch 'master'
                   }
