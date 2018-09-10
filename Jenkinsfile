@@ -226,7 +226,12 @@ spec:
 
         stage('DAST with ZAP') {
 
-            when { branch 'acceptance' }
+            when {
+                anyOf {
+                    branch 'acceptance' ;
+                    branch 'master'
+                }
+            }
 
             steps {
                 container('kubectl') {
