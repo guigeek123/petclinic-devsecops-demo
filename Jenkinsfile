@@ -125,7 +125,12 @@ spec:
 
         stage('Sonar and Dependency-Check') {
 
-            when { branch 'acceptance' }
+            when {
+                anyOf {
+                    branch 'acceptance' ;
+                    branch 'master'
+                }
+            }
 
             steps {
                 container('maven') {
@@ -186,7 +191,12 @@ spec:
 
         stage('Scan image with CLAIR') {
 
-            when { branch 'acceptance' }
+            when {
+                anyOf {
+                    branch 'acceptance' ;
+                    branch 'master'
+                }
+            }
 
             steps{
                 // Execute scan and analyse results
