@@ -91,8 +91,7 @@ spec:
             - key: .dockerconfigjson
               path: .docker/config.json
   - name: maven-repo
-    persistentVolumeClaim:
-      claimName: maven-repo
+    emptyDir: {}
 """
         }
     }
