@@ -91,13 +91,12 @@ spec:
             - key: .dockerconfigjson
               path: .docker/config.json
   - name: maven-repo
-    persistentVolumeClaim:
-      claimName: maven-repo
+    emptyDir: {}
 """
         }
     }
 
-  stages{
+    stages{
 
         /*stage('Checkout') {
             checkout scm
@@ -125,7 +124,12 @@ spec:
 
         stage('Sonar and Dependency-Check') {
 
-            when { branch 'acceptance' }
+            when {
+                anyOf {
+                    branch 'acceptance' ;
+                    branch 'master'
+                }
+            }
 
             steps {
                 container('maven') {
@@ -186,7 +190,12 @@ spec:
 
         stage('Scan image with CLAIR') {
 
-            when { branch 'acceptance' }
+            when {
+                anyOf {
+                    branch 'acceptance' ;
+                    branch 'master'
+                }
+            }
 
             steps{
                 // Execute scan and analyse results
@@ -216,7 +225,12 @@ spec:
 
         stage('DAST with ZAP') {
 
-            when { branch 'acceptance' }
+            when {
+                anyOf {
+                    branch 'acceptance' ;
+                    branch 'master'
+                }
+            }
 
             steps {
                 container('kubectl') {
@@ -286,111 +300,111 @@ spec:
         }
 
 
-      stage('Upload Reports to DefectDojo') {
-          when {
-              anyOf {
-                  branch 'acceptance' ;
-                  branch 'master'
-              }
-          }
-          steps {
-              script {
-                  try {
-                      withCredentials([string(credentialsId: 'defectdojo_apikey', variable: 'defectdojo_apikey')]) {
-                          container('defectdojocli') {
-                              sh('pip install requests')
-                              sh("cd pipeline-tools/defectdojo/scripts/ && chmod +x dojo_ci_cd.py && ./dojo_ci_cd.py --host http://defectdojo:80 --api_key ${env.defectdojo_apikey} --build_id ${env.BUILD_NUMBER} --user admin --product ${project} --dir ../../../reports/")
-                          }
-                      }
+        stage('Upload Reports to DefectDojo') {
+            when {
+                anyOf {
+                    branch 'acceptance' ;
+                    branch 'master'
+                }
+            }
+            steps {
+                script {
+                    try {
+                        withCredentials([string(credentialsId: 'defectdojo_apikey', variable: 'defectdojo_apikey')]) {
+                            container('defectdojocli') {
+                                sh('pip install requests')
+                                sh("cd pipeline-tools/defectdojo/scripts/ && chmod +x dojo_ci_cd.py && ./dojo_ci_cd.py --host http://defectdojo:80 --api_key ${env.defectdojo_apikey} --build_id ${env.BUILD_NUMBER} --user admin --product ${project} --dir ../../../reports/")
+                            }
+                        }
 
-                  } catch (org.jenkinsci.plugins.credentialsbinding.impl.CredentialNotFoundException e) {
-                      println "Export to Defect Dojo not activated : please set up the api key in defectdojo_apikey secret"
-                  }
-              }
-          }
+                    } catch (org.jenkinsci.plugins.credentialsbinding.impl.CredentialNotFoundException e) {
+                        println "Export to Defect Dojo not activated : please set up the api key in defectdojo_apikey secret"
+                    }
+                }
+            }
 
-      }
+        }
 
-      stage('Deploy to Dev') {
+        stage('Deploy to Dev') {
 
-          when {
-              not {
-                  anyOf {
-                      branch 'acceptance' ;
-                      branch 'master'
-                  }
-              }
-          }
+            when {
+                not {
+                    anyOf {
+                        branch 'acceptance' ;
+                        branch 'master'
+                    }
+                }
+            }
 
-          steps {
-              container('kubectl') {
-                  // Create namespace if it doesn't exist
-                  sh("kubectl get ns ${env.BRANCH_NAME} || kubectl create ns ${env.BRANCH_NAME}")
-                  //Get node internal ip to access nexus docker registry exposed as nodePort (nexus-direct-nodeport.yaml) and replace it yaml file
-                  sh 'sed -i.bak \"s#NODEIP#$(kubectl get nodes -o jsonpath="{.items[1].status.addresses[?(@.type==\\"InternalIP\\")].address}")#\" ./k8s/production/*.yaml'
-                  //Write the image to be deployed in the yaml deployment file
-                  sh("sed -i.bak 's#CONTAINERNAME#${imageTag}#' ./k8s/production/*.yaml")
-                  //Personalizes the deployment file with application name
-                  sh("sed -i.bak 's#appName#${appName}#' ./k8s/production/*.yaml")
-                  sh("sed -i.bak 's#appName#${appName}#' ./k8s/services/frontend.yaml")
-                  //Deploy application
-                  sh("kubectl --namespace=${env.BRANCH_NAME} apply -f k8s/services/frontend.yaml")
-                  sh("kubectl --namespace=${env.BRANCH_NAME} apply -f k8s/production/")
-                  //Display access
-                  // TODO : put back LoadBalancer deployment, and add a timer to wait for IP attribution
-                  //sh("echo http://`kubectl --namespace=production get service/${feSvcName} -o jsonpath='{.status.loadBalancer.ingress[0].ip}'` > ${feSvcName}")
-              }
-          }
-      }
+            steps {
+                container('kubectl') {
+                    // Create namespace if it doesn't exist
+                    sh("kubectl get ns ${env.BRANCH_NAME} || kubectl create ns ${env.BRANCH_NAME}")
+                    //Get node internal ip to access nexus docker registry exposed as nodePort (nexus-direct-nodeport.yaml) and replace it yaml file
+                    sh 'sed -i.bak \"s#NODEIP#$(kubectl get nodes -o jsonpath="{.items[1].status.addresses[?(@.type==\\"InternalIP\\")].address}")#\" ./k8s/production/*.yaml'
+                    //Write the image to be deployed in the yaml deployment file
+                    sh("sed -i.bak 's#CONTAINERNAME#${imageTag}#' ./k8s/production/*.yaml")
+                    //Personalizes the deployment file with application name
+                    sh("sed -i.bak 's#appName#${appName}#' ./k8s/production/*.yaml")
+                    sh("sed -i.bak 's#appName#${appName}#' ./k8s/services/frontend.yaml")
+                    //Deploy application
+                    sh("kubectl --namespace=${env.BRANCH_NAME} apply -f k8s/services/frontend.yaml")
+                    sh("kubectl --namespace=${env.BRANCH_NAME} apply -f k8s/production/")
+                    //Display access
+                    // TODO : put back LoadBalancer deployment, and add a timer to wait for IP attribution
+                    //sh("echo http://`kubectl --namespace=production get service/${feSvcName} -o jsonpath='{.status.loadBalancer.ingress[0].ip}'` > ${feSvcName}")
+                }
+            }
+        }
 
-      stage('Deploy to Acceptance') {
+        stage('Deploy to Acceptance') {
 
-          when { branch 'acceptance'}
+            when { branch 'acceptance'}
 
-          steps {
-              container('kubectl') {
-                  //Get node internal ip to access nexus docker registry exposed as nodePort (nexus-direct-nodeport.yaml) and replace it yaml file
-                  sh 'sed -i.bak \"s#NODEIP#$(kubectl get nodes -o jsonpath="{.items[1].status.addresses[?(@.type==\\"InternalIP\\")].address}")#\" ./k8s/production/*.yaml'
-                  //Write the image to be deployed in the yaml deployment file
-                  sh("sed -i.bak 's#CONTAINERNAME#${imageTag}#' ./k8s/production/*.yaml")
-                  //Personalizes the deployment file with application name
-                  sh("sed -i.bak 's#appName#${appName}#' ./k8s/production/*.yaml")
-                  sh("sed -i.bak 's#appName#${appName}#' ./k8s/services/frontend.yaml")
-                  //Deploy application
-                  sh("kubectl --namespace=acceptance apply -f k8s/services/frontend.yaml")
-                  sh("kubectl --namespace=acceptance apply -f k8s/production/")
-                  //Display access
-                  // TODO : put back LoadBalancer deployment, and add a timer to wait for IP attribution
-                  //sh("echo http://`kubectl --namespace=production get service/${feSvcName} -o jsonpath='{.status.loadBalancer.ingress[0].ip}'` > ${feSvcName}")
-              }
-          }
-      }
+            steps {
+                container('kubectl') {
+                    //Get node internal ip to access nexus docker registry exposed as nodePort (nexus-direct-nodeport.yaml) and replace it yaml file
+                    sh 'sed -i.bak \"s#NODEIP#$(kubectl get nodes -o jsonpath="{.items[1].status.addresses[?(@.type==\\"InternalIP\\")].address}")#\" ./k8s/production/*.yaml'
+                    //Write the image to be deployed in the yaml deployment file
+                    sh("sed -i.bak 's#CONTAINERNAME#${imageTag}#' ./k8s/production/*.yaml")
+                    //Personalizes the deployment file with application name
+                    sh("sed -i.bak 's#appName#${appName}#' ./k8s/production/*.yaml")
+                    sh("sed -i.bak 's#appName#${appName}#' ./k8s/services/frontend.yaml")
+                    //Deploy application
+                    sh("kubectl --namespace=acceptance apply -f k8s/services/frontend.yaml")
+                    sh("kubectl --namespace=acceptance apply -f k8s/production/")
+                    //Display access
+                    // TODO : put back LoadBalancer deployment, and add a timer to wait for IP attribution
+                    //sh("echo http://`kubectl --namespace=production get service/${feSvcName} -o jsonpath='{.status.loadBalancer.ingress[0].ip}'` > ${feSvcName}")
+                }
+            }
+        }
 
-      stage('Deploy to Production') {
+        stage('Deploy to Production') {
 
-          when { branch 'master'}
+            when { branch 'master'}
 
-          //TODO : create a SECURITY GATE script
+            //TODO : create a SECURITY GATE script
 
-          steps {
-              container('kubectl') {
-                  //Get node internal ip to access nexus docker registry exposed as nodePort (nexus-direct-nodeport.yaml) and replace it yaml file
-                  sh 'sed -i.bak \"s#NODEIP#$(kubectl get nodes -o jsonpath="{.items[1].status.addresses[?(@.type==\\"InternalIP\\")].address}")#\" ./k8s/production/*.yaml'
-                  //Write the image to be deployed in the yaml deployment file
-                  sh("sed -i.bak 's#CONTAINERNAME#${imageTag}#' ./k8s/production/*.yaml")
-                  //Personalizes the deployment file with application name
-                  sh("sed -i.bak 's#appName#${appName}#' ./k8s/production/*.yaml")
-                  sh("sed -i.bak 's#appName#${appName}#' ./k8s/services/frontend.yaml")
-                  //Deploy application
-                  sh("kubectl --namespace=production apply -f k8s/services/frontend.yaml")
-                  sh("kubectl --namespace=production apply -f k8s/production/")
-                  //Display access
-                  // TODO : put back LoadBalancer deployment, and add a timer to wait for IP attribution
-                  //sh("echo http://`kubectl --namespace=production get service/${feSvcName} -o jsonpath='{.status.loadBalancer.ingress[0].ip}'` > ${feSvcName}")
-              }
-          }
-      }
+            steps {
+                container('kubectl') {
+                    //Get node internal ip to access nexus docker registry exposed as nodePort (nexus-direct-nodeport.yaml) and replace it yaml file
+                    sh 'sed -i.bak \"s#NODEIP#$(kubectl get nodes -o jsonpath="{.items[1].status.addresses[?(@.type==\\"InternalIP\\")].address}")#\" ./k8s/production/*.yaml'
+                    //Write the image to be deployed in the yaml deployment file
+                    sh("sed -i.bak 's#CONTAINERNAME#${imageTag}#' ./k8s/production/*.yaml")
+                    //Personalizes the deployment file with application name
+                    sh("sed -i.bak 's#appName#${appName}#' ./k8s/production/*.yaml")
+                    sh("sed -i.bak 's#appName#${appName}#' ./k8s/services/frontend.yaml")
+                    //Deploy application
+                    sh("kubectl --namespace=production apply -f k8s/services/frontend.yaml")
+                    sh("kubectl --namespace=production apply -f k8s/production/")
+                    //Display access
+                    // TODO : put back LoadBalancer deployment, and add a timer to wait for IP attribution
+                    //sh("echo http://`kubectl --namespace=production get service/${feSvcName} -o jsonpath='{.status.loadBalancer.ingress[0].ip}'` > ${feSvcName}")
+                }
+            }
+        }
 
-  }
+    }
 
 }
