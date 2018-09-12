@@ -244,13 +244,13 @@ spec:
                     //Write the image to be deployed in the yaml deployment file
                     sh("sed -i.bak 's#CONTAINERNAME#${imageTag}#' ./k8s/testing/frontend.yaml")
                     //Personalizes the deployment file with application name
-                    sh("sed -i.bak 's#appName#${appName}#' ./k8s/testing/*.yaml")
+                    sh("sed -i.bak 's#appName#${appName}-${env.BRANCH_NAME}#' ./k8s/testing/*.yaml")
                     // Deploy to testing namespace, with the docker image created before
                     sh 'kubectl apply -f ./k8s/testing/frontend.yaml --namespace=testing'
                     sh 'kubectl apply -f ./k8s/testing/frontend-service.yaml --namespace=testing'
 
                     // Deploy an "internamespace service" to make the testing app accessible from the default namespace where zap is running
-                    sh("sed -i.bak 's#appName#${appName}#' ./k8s/services/internamespace-frontend.yaml")
+                    sh("sed -i.bak 's#appName#${appName}-${env.BRANCH_NAME}#' ./k8s/services/internamespace-frontend.yaml")
                     sh 'kubectl apply -f ./k8s/services/internamespace-frontend.yaml'
                 }
 
@@ -263,7 +263,7 @@ spec:
                     //TODO : configure scanners
                     script{
                         try {
-                            sh("zap-cli quick-scan -o '-config api.disablekey=true' -l Low --spider -r http://${appName}-frontend-defaultns/")
+                            sh("zap-cli quick-scan -o '-config api.disablekey=true' -l Low --spider -r http://${appName}-${env.BRANCH_NAME}-frontend-defaultns/")
                         } catch (all) {
                             //scripts gives error if any findings
                             // for later : break the build in case of high in master branch (e.g. when building release)
@@ -292,9 +292,9 @@ spec:
 
                 // Destroy app from testing namespace
                 container('kubectl') {
-                    sh "kubectl delete service ${appName}-frontend-defaultns"
-                    sh "kubectl delete deployment ${appName}-frontend-deployment --namespace=testing"
-                    sh "kubectl delete service ${appName}-frontend --namespace=testing"
+                    sh "kubectl delete service ${appName}-${env.BRANCH_NAME}-frontend-defaultns"
+                    sh "kubectl delete deployment ${appName}-${env.BRANCH_NAME}-frontend-deployment --namespace=testing"
+                    sh "kubectl delete service ${appName}-${env.BRANCH_NAME}-frontend --namespace=testing"
                 }
             }
         }
