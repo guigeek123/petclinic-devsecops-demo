@@ -96,7 +96,7 @@ spec:
         }
     }
 
-    stages{
+    stages {
 
         /*stage('Checkout') {
             checkout scm
@@ -126,7 +126,7 @@ spec:
 
             when {
                 anyOf {
-                    branch 'acceptance' ;
+                    branch 'acceptance';
                     branch 'master'
                 }
             }
@@ -142,7 +142,7 @@ spec:
                 }
 
 
-                script{
+                script {
                     try {
                         withCredentials([string(credentialsId: 'ddtrack_apikey', variable: 'ddtrack_apikey')]) {
                             container('ddtrackcli') {
@@ -160,7 +160,7 @@ spec:
 
 
         stage('Build with Maven') {
-            steps{
+            steps {
                 container('maven') {
                     sh 'mvn -s pipeline-tools/maven/maven-custom-settings clean deploy -DskipTests'
                 }
@@ -170,7 +170,7 @@ spec:
 
         stage('Build Docker image with Kaniko') {
 
-            steps{
+            steps {
                 container('maven') {
                     sh 'mkdir targetDocker'
                     sh 'cd targetDocker && mvn -s ../pipeline-tools/maven/maven-custom-settings org.apache.maven.plugins:maven-dependency-plugin::get -DgroupId=org.springframework.samples -DartifactId=spring-petclinic -Dversion=2.0.0.BUILD-SNAPSHOT -Dpackaging=jar -Ddest=app.jar'
@@ -179,7 +179,9 @@ spec:
                 container(name: 'kaniko', shell: '/busybox/sh') {
                     withEnv(['PATH+EXTRA=/busybox']) {
                         sh """#!/busybox/sh
-                            /kaniko/executor --dockerfile=Dockerfile -c `pwd` --destination=nexus-direct:8083/${imageTag} --insecure
+                            /kaniko/executor --dockerfile=Dockerfile -c `pwd` --destination=nexus-direct:8083/${
+                            imageTag
+                        } --insecure
                         """
                     }
                 }
@@ -192,14 +194,14 @@ spec:
 
             when {
                 anyOf {
-                    branch 'acceptance' ;
+                    branch 'acceptance';
                     branch 'master'
                 }
             }
 
-            steps{
+            steps {
                 // Execute scan and analyse results
-                script{
+                script {
                     try {
                         container('claircli') {
                             // Prerequisites installation on python image
@@ -227,7 +229,7 @@ spec:
 
             when {
                 anyOf {
-                    branch 'acceptance' ;
+                    branch 'acceptance';
                     branch 'master'
                 }
             }
@@ -261,7 +263,7 @@ spec:
                     //Give a chance to the app to start
                     sh 'sleep 30'
                     //TODO : configure scanners
-                    script{
+                    script {
                         try {
                             sh("zap-cli quick-scan -o '-config api.disablekey=true' -l Low --spider -r http://${appName}-${env.BRANCH_NAME}-frontend-defaultns/")
                         } catch (all) {
@@ -303,7 +305,7 @@ spec:
         stage('Upload Reports to DefectDojo') {
             when {
                 anyOf {
-                    branch 'acceptance' ;
+                    branch 'acceptance';
                     branch 'master'
                 }
             }
@@ -330,7 +332,7 @@ spec:
             when {
                 not {
                     anyOf {
-                        branch 'acceptance' ;
+                        branch 'acceptance';
                         branch 'master'
                     }
                 }
@@ -357,6 +359,28 @@ spec:
             }
         }
 
+        stage('Security Gate (non blocking)') {
+
+            when { branch 'acceptance' }
+
+            steps{
+                container('python3') {
+                    sh 'pip install behave'
+                    script {
+                        try {
+                            sh 'cd gate && behave'
+                        } catch(all) {
+                            //non blocking gate
+                            //TODO publish gate info in jenkins
+                        }
+                    }
+
+                }
+            }
+
+        }
+
+
         stage('Deploy to Acceptance') {
 
             when { branch 'acceptance'}
@@ -378,6 +402,22 @@ spec:
                     //sh("echo http://`kubectl --namespace=production get service/${feSvcName} -o jsonpath='{.status.loadBalancer.ingress[0].ip}'` > ${feSvcName}")
                 }
             }
+        }
+
+        stage('Security Gate') {
+
+            when { branch 'master' }
+
+            steps{
+                container('python3') {
+                    sh 'pip install behave'
+                    script {
+                        sh 'cd gate && behave'
+                    }
+
+                }
+            }
+
         }
 
         stage('Deploy to Production') {
