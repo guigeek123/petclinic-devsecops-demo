@@ -280,11 +280,12 @@ spec:
 
                     sh("zap-cli report -f xml -o zap-results.xml")
                     sh("zap-cli report -f html -o pipeline-tools/zap/scripts/results.html")
-                    //sh("zap-cli report -f json -o pipeline-tools/zap/scripts/results.json")
-                    //TODO : JSON NOT AVAILABLE get json report via custom script...
+                    //Getting JSON results using custom script, not available in zap-cli...
+                    sh("pipeline-tools/zap/scripts/zap-get-json-results.py")
                     sh("zap-cli shutdown")
-                    //TODO : Carefull to privileges
-                    sh "mkdir reports/zap && cp zap-results.xml reports/zap/"
+                    //Note : Carefull to privileges
+                    //Note : XML version required for DefectDojo, Json version required for Security Gate
+                    sh "mkdir reports/zap && cp zap-results.xml reports/zap/ && cp zap-results.json reports/zap/"
 
                     publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'pipeline-tools/zap/scripts/', reportFiles: 'results.html', reportName: 'ZAP full report', reportTitles: ''])
 
