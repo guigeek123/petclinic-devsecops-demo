@@ -288,7 +288,7 @@ spec:
                     //Note : Carefull to privileges
                     //Note : XML version required for DefectDojo, Json version required for Security Gate
                     sh "mkdir -p reports"
-                    sh "mkdir reports/zap && cp zap-results.xml reports/zap/ && cp zap-results.json reports/zap/"
+                    sh "mkdir reports/zap && cp zap-results.xml reports/zap/"
 
                     publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'pipeline-tools/zap/scripts/', reportFiles: 'results.html', reportName: 'ZAP full report', reportTitles: ''])
 
