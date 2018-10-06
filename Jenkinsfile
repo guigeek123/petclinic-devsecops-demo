@@ -223,6 +223,7 @@ spec:
                         // TODO : Show an information on jenkins to say that the gate is not OK but not block the build
                     } finally {
                         // Move JSON report to be uploaded later in defectdojo
+                        sh "mkdir -p reports"
                         sh "mkdir reports/clair && cp pipeline-tools/clair/scripts/clair-results.json reports/clair/"
                     }
                 }
@@ -286,6 +287,7 @@ spec:
                     sh("zap-cli shutdown")
                     //Note : Carefull to privileges
                     //Note : XML version required for DefectDojo, Json version required for Security Gate
+                    sh "mkdir -p reports"
                     sh "mkdir reports/zap && cp zap-results.xml reports/zap/ && cp zap-results.json reports/zap/"
 
                     publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'pipeline-tools/zap/scripts/', reportFiles: 'results.html', reportName: 'ZAP full report', reportTitles: ''])
