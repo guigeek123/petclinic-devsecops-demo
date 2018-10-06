@@ -17,7 +17,7 @@ Feature: Security Gate
     Then none of these zap risk levels should be present
       | risk |
       | High |
-      #| Medium |
+      | Medium |
 
 
   Scenario: The clair report should not contain blocking vulnerabilities
