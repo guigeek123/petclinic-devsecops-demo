@@ -109,7 +109,7 @@ spec:
                 container('python3') {
                     sh 'curl -L https://github.com/guigeek123/spring-petclinic-jenkins-kubernetes/releases/download/v0.5/pipeline-tools-v0.5.tar.gz --output pipeline-tools.tar.gz'
                     sh 'tar xvzf pipeline-tools.tar.gz'
-                    sh 'chmod 770 -R pipeline-tools'
+                    sh 'chown 770 -R pipeline-tools'
                 }
 
                 container('kubectl') {
@@ -421,6 +421,7 @@ spec:
             steps{
                 container('python3') {
                     sh 'pip install behave'
+                    sh 'chown 1000 -R pipeline-tools'
                     script {
                         sh 'cp gate_config/security_gate.feature pipeline-tools/gate/features/'
                         sh 'cd pipeline-tools/gate && behave'
