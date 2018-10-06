@@ -264,6 +264,7 @@ spec:
                 // Execute scan and analyse results
 
                 container('zap') {
+                    sh("pip install python-owasp-zap-v2.4")
                     sh("zap-cli start -o '-config api.disablekey=true'")
                     //Give a chance to the app to start
                     sh 'sleep 30'
