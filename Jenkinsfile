@@ -420,8 +420,9 @@ spec:
 
             steps{
                 container('python3') {
+                    sh 'chmod 777 zap_results.json'
+                    sh 'chmod -R 777 reports'
                     sh 'pip install behave'
-                    sh 'chown 1000 -R pipeline-tools'
                     script {
                         sh 'cp gate_config/security_gate.feature pipeline-tools/gate/features/'
                         sh 'cd pipeline-tools/gate && behave'
