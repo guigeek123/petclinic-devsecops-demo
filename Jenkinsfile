@@ -109,7 +109,7 @@ spec:
                 container('python3') {
                     sh 'curl -L https://github.com/guigeek123/spring-petclinic-jenkins-kubernetes/releases/download/v0.5/pipeline-tools-v0.5.tar.gz --output pipeline-tools.tar.gz'
                     sh 'tar xvzf pipeline-tools.tar.gz'
-                    sh 'chown 770 -R pipeline-tools'
+                    sh 'chmod 770 -R pipeline-tools'
                 }
 
                 container('kubectl') {
