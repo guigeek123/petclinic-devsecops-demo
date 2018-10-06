@@ -375,9 +375,6 @@ spec:
             steps{
                 container('python3') {
                     sh 'pip install behave'
-                    sh 'chmod 777 zap_results.json'
-                    sh 'chmod -R 777 reports'
-                    sh 'sleep 600'
                     script {
                         try {
                             sh 'cp gate_config/security_gate.feature pipeline-tools/gate/features/'
