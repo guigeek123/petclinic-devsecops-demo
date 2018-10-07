@@ -122,7 +122,7 @@ spec:
         }
 
 
-        /*stage('Sonar and Dependency-Check') {
+        stage('Sonar and Dependency-Check') {
 
             when {
                 anyOf {
@@ -156,7 +156,7 @@ spec:
                 }
 
             }
-        }*/
+        }
 
 
         stage('Build with Maven') {
