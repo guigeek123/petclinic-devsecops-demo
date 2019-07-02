@@ -224,15 +224,15 @@ spec:
                             // Executing customized Yair script
                             // --no-namespace cause docker image is not pushed withi a "Library" folder in Nexus
                             sh "cd pipeline-tools/clair/scripts/ && chmod +x yair-custom.py && ./yair-custom.py ${imageTag} --no-namespace"
-
-
                         }
-                    } catch (all) {
-                        // TODO : Show an information on jenkins to say that the gate is not OK but not block the build
-                    } finally {
                         // Move JSON report to be uploaded later in defectdojo
                         sh "mkdir -p reports"
                         sh "mkdir reports/clair && cp pipeline-tools/clair/scripts/clair-results.json reports/clair/"
+
+                    } catch (all) {
+                        // TODO : Show an information on jenkins to say that the gate is not OK but not block the build
+                    } finally {
+                        // ?
                     }
                 }
 
