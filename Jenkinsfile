@@ -137,15 +137,14 @@ spec:
                     sh 'mvn -s pipeline-tools/maven/maven-custom-settings clean verify -Dddcheck=false sonar:sonar'
                     script {
                         try {
-
+                            sh 'mkdir reports && mkdir reports/dependency && cp target/dependency-check-report.xml reports/dependency/'
+                            // WARNING SECURITY : Change permission to make other container able to move reports in that directory (to be patched)
+                            sh 'chmod 777 reports'
+                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'target/', reportFiles: 'dependency-check-report.html', reportName: 'Dependency-Check Report', reportTitles: ''])
                         } catch (err) {
                             println "ERROR WHILE MANAGING Dependency Check report. Message : " + err.getMessage()
                         }
                     }
-                    sh 'mkdir reports && mkdir reports/dependency && cp target/dependency-check-report.xml reports/dependency/'
-                    // WARNING SECURITY : Change permission to make other container able to move reports in that directory (to be patched)
-                    sh 'chmod 777 reports'
-                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'target/', reportFiles: 'dependency-check-report.html', reportName: 'Dependency-Check Report', reportTitles: ''])
                 }
 
 
