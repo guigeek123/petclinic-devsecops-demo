@@ -134,7 +134,7 @@ spec:
             steps {
                 container('maven') {
                     // ddcheck=true will activate dependency-check scan (configured in POM.xml via a profile)
-                    sh 'mvn -s pipeline-tools/maven/maven-custom-settings clean verify -Dddcheck=true sonar:sonar'
+                    sh 'mvn -s pipeline-tools/maven/maven-custom-settings clean verify -Dddcheck=false sonar:sonar'
                     sh 'mkdir reports && mkdir reports/dependency && cp target/dependency-check-report.xml reports/dependency/'
                     // WARNING SECURITY : Change permission to make other container able to move reports in that directory (to be patched)
                     sh 'chmod 777 reports'
