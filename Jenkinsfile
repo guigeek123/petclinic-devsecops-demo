@@ -134,7 +134,7 @@ spec:
             steps {
                 container('maven') {
                     // ddcheck=true will activate dependency-check scan (configured in POM.xml via a profile)
-                    sh 'mvn -s pipeline-tools/maven/maven-custom-settings clean verify -Dddcheck=false sonar:sonar'
+                    sh 'mvn -s pipeline-tools/maven/maven-custom-settings clean verify -Dddcheck=true sonar:sonar'
                     script {
                         try {
                             sh 'mkdir reports'
